@@ -1,63 +1,66 @@
 const express = require("express");
 const cors = require("cors");
-const bodyParser = require("body-parser");
-const { exec } = require("child_process");
-// const fs = require("fs");
-// const https = require("https");
-const execSync = require("child_process").execSync;
+const { createProxyMiddleware } = require('http-proxy-middleware');
+const fs = require("fs");
 
-// const key = fs.readFileSync("./key.pem");
-// const cert = fs.readFileSync("./cert.pem");
+const PORT = 4269;
+const URL = "localhost";
+
+function log(msg, type) {
+	if(type == "warning") console.warn(`[${new Date().toISOString()}] ${msg}`);
+	else if(type == "error") console.error(`[${new Date().toISOString()}] ${msg}`);
+	else console.log(`[${new Date().toISOString()}] ${msg}`);
+}
+
+log(`Started server at ${URL}:${PORT}`);
+
+//Read config
+let config = {
+	targetUrl: "http://localhost",
+	targetPort: "6969"
+};
+
+try {
+	config = JSON.parse(fs.readFileSync(__dirname + "/config/sockets-pwa.json"));
+} catch(e) {
+	log("Could not read config, reverting to default", "warn");
+}
+
 
 const app = express();
-app.use(bodyParser.json());
 app.use(cors());
 
+//Log all requests
+app.use((req, res, next) => {
+	log(`Received request from ${req.ip} for url ${req.url}`);
+	next();
+});
+
+//server PWA
 app.use(express.static("public"));
 
+//silence CORS
 app.use(function(req, res, next) {
 	res.header("Access-Control-Allow-Origin", "*");
 	next();
 });
 
-app.get("/", function(req, res){
-	
-	let action, no;
-	if(req.query.action || req.query.no){
-		
-		console.log("Socket action: action = " + req.query.action  + " no = " + req.query.no);
-		
-		action = req.query.action;
-		no = req.query.no;
-
-		if(action == "on" || action == "off"){
-			exec("/home/pi/wiringPi/433Utils/SocketControl " + req.query.no + " " + ((req.query.action=="on") ? "1" : "0"), (i,j,k) => {return;});
-		} else if(action == "turnon" || action == "turnoff"){
-			exec("/home/pi/wiringPi/433Utils/SocketControl " + ((req.query.action=="turnon") ? "-on" : "-off"), (i,j,k) => {return;});
+//Proxy switch requests
+app.get("/switch/*", createProxyMiddleware({
+		target: `${config.targetUrl}:${config.targetPort}/`,
+		changeOrigin: false,
+		pathRewrite: {
+			"^/switch": ""
 		}
-
-		res.end();
-		return;
 	}
+));
 
-	let file = "index.html"
-	
-	console.log("Request root");
-	res.sendFile(file, { root: __dirname });
+//provide some info
+app.get("/info", (req, res) => {
+
+	res.write("SocketServer PWA to control my 433Mhz sockets.\r\n");
+	res.send();
+
 });
 
-// app.get("/:file", function(req, res) {
-	
-// 	let file = "index.html"
-// 	if(req.params.file)
-// 		file = req.params.file;
-	
-// 	console.log(file);
-// 	res.sendFile(file, { root: __dirname });
-// })
-
-app.listen(4269);
-
-// const server = https.createServer({key: key, cert: cert}, app);
-
-// server.listen(4269);
+app.listen(PORT);

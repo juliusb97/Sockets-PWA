@@ -132,10 +132,14 @@
             </div>
         </div>
         <script>
-            function Switch(socketno, state){
+            function Switch_old(socketno, state){
                 var xhttp = new XMLHttpRequest();
                 xhttp.open("GET", "/?no=" + socketno + "&action=" + (state ? "on" : "off"), true);
                 xhttp.send();
+            }
+
+            function Switch(socketno, state) {
+                fetch(`/switch/${socketno}?action=${state ? 'on' : 'off'}`);
             }
 
             function SwitchAll(state){
