@@ -8,6 +8,7 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <link rel="apple-touch-icon" href="/apple-touch-icon-192.png">
         <meta name="theme-color" content="#000"/>
+        <link rel="icon" type="image/x-icon" href="/favicon-32.ico">
         <!-- <link rel="apple-touch-icon" href="single-page-icon.png">
         <link rel="apple-touch-icon" sizes="180x180" href="touch-icon-iphone-retina.png">
         <link rel="apple-touch-icon" href="touch-icon-iphone.png">
@@ -63,6 +64,7 @@
                 border-radius: 30px;
                 padding: 15px;
                 margin-right: 5px;
+                cursor: pointer;
             }
 
             .socket {
@@ -91,14 +93,72 @@
             #allLabel {
                 font-weight: 600;
             }
+
+            #toastWrapper {
+                position: fixed;
+                top: -100%;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                color: white;
+            }
+
+            .toastWrapperSlideIn {
+                animation: ToastWrapperSlideInAnim 2s;
+            }
+
+            @keyframes ToastWrapperSlideInAnim {
+                0% {
+                    top: -100%;
+                }
+
+                40% {
+                    top: 10%;
+                }
+
+                60% {
+                    top: 10%;
+                }
+
+                100% {
+                    top: -100%;
+                }
+            }
+
+            .toast {
+                background: #944;
+                color: white;
+                padding: 15px;
+            }
+
+            #toastError {
+                background: #944;
+            }
+
+            #toastSuccess {
+                background: #494;
+            }
         </style>
         <script>
             if("serviceWorker" in navigator) {
-                navigator.serviceWorker.register("./sw.js");
+                navigator.serviceWorker.register("./sw.js", {
+                    enabled: true, registrationStrategy: "registerImmediately"
+                });
             }
         </script>
     </head>
     <body>
+        <div id="toastWrapper">
+            <div id="toastError" class="toast">
+                <h2>Fehler</h2>
+                <p>Operation konnte nicht durchgeführt werden.</p>
+                <span id="eMsg"></span>
+            </div>
+            <div id="toastSuccess" class="toast">
+                <h2>Erfolg</h2>
+                <p>Operation wurde ausgeführt.</p>
+            </div>
+        </div>
         <div id="main">
             <div id="heading">
                 <h1>Socket Control</h1>
@@ -132,6 +192,8 @@
             </div>
         </div>
         <script>
+            const TARGET = "https://raspberrypi:8443";
+
             function Switch_old(socketno, state){
                 var xhttp = new XMLHttpRequest();
                 xhttp.open("GET", "/?no=" + socketno + "&action=" + (state ? "on" : "off"), true);
@@ -139,7 +201,27 @@
             }
 
             function Switch(socketno, state) {
-                fetch(`/switch/${socketno}?action=${state ? 'on' : 'off'}`);
+                fetch(`${TARGET}/${socketno}?action=${state ? 'on' : 'off'}`).then(res => {
+                    if(!res.ok) {
+                        document.querySelector("#toastError").style.display = "block";
+                        document.querySelector("#toastSuccess").style.display = "none";
+
+                        console.warn("Request to socket failed");
+                    } else {
+                        document.querySelector("#toastError").style.display = "none";
+                        document.querySelector("#toastSuccess").style.display = "block";
+                    }
+
+                    const toastWrapper = document.querySelector("#toastWrapper");
+
+                    if(toastWrapper.classList.contains("toastWrapperSlideIn")) {
+                        toastWrapper.classList.remove("toastWrapperSlideIn");
+                        void toastWrapper.offsetWidth;
+                    }
+
+                    toastWrapper.classList.add("toastWrapperSlideIn");
+
+                });
             }
 
             function SwitchAll(state){
