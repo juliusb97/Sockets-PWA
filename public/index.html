@@ -192,7 +192,7 @@
             </div>
         </div>
         <script>
-            const TARGET = "https://raspberrypi:8443";
+            // const TARGET = "https://raspberrypi:6969";
 
             function Switch_old(socketno, state){
                 var xhttp = new XMLHttpRequest();
@@ -201,7 +201,8 @@
             }
 
             function Switch(socketno, state) {
-                fetch(`${TARGET}/${socketno}?action=${state ? 'on' : 'off'}`).then(res => {
+                // fetch(`${TARGET}/${socketno}?action=${state ? 'on' : 'off'}`).then(res => {
+                fetch(`/switch/${socketno}?action=${state ? '1' : '0'}`).then(res => {
                     if(!res.ok) {
                         document.querySelector("#toastError").style.display = "block";
                         document.querySelector("#toastSuccess").style.display = "none";

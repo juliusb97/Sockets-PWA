@@ -36,7 +36,7 @@ app.use((req, res, next) => {
 	next();
 });
 
-//server PWA
+//serve PWA
 app.use(express.static("public"));
 
 //silence CORS
